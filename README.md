@@ -27,7 +27,7 @@
 ---
 ## 🎬 Как это работает
 
-<video src="example.mp4" controls width="100%" poster="https://via.placeholder.com/800x450/1a2a3a/7affb0?text=Калькулятор+стипендии"></video>
+![Демонстрация работы калькулятора](example.gif)
 
 ---
 
