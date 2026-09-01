@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Калькулятор детской стипендии</title>
+    <style>
+        /* ===== Тёмная тема (голубой + зелёный) ===== */
+        :root {
+            --bg-body: #0a1620;
+            --bg-cash: #1a2a3a;
+            --border-cash: #2a4055;
+            --text-primary: #e8f0fe;
+            --text-secondary: #9bb7d4;
+            --display-bg: #0e1a2a;
+            --display-text: #7affb0;
+            --key-bg: #1f3347;
+            --key-hover: #2a4a62;
+            --key-border: #2a4055;
+            --btn-green: #48d48b;
+            --btn-green-dark: #3ab77a;
+            --btn-green-shadow: #2d8f5f;
+            --accent-blue: #5b9bd5;
+            --shadow: 0 20px 50px rgba(0,0,0,0.8);
+            --receipt-bg: #f5f0e7;
+            --receipt-text: #1a1a1a;
+            --receipt-border: #b0a080;
+        }
+        * { box-sizing: border-box; margin:0; padding:0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-body);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .cash-register {
+            background: var(--bg-cash);
+            border-radius: 40px 40px 20px 20px;
+            box-shadow: var(--shadow), inset 0 -4px 0 #0f1a26;
+            padding: 30px 30px 0 30px;
+            max-width: 560px;
+            width: 100%;
+            border: 2px solid var(--border-cash);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .display {
+            background: var(--display-bg);
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 22px;
+            border: 2px solid #2a4a62;
+            box-shadow: inset 0 0 20px rgba(0,80,60,0.3);
+            min-height: 90px;
+        }
+        .display .line {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: var(--display-text);
+            text-shadow: 0 0 8px rgba(90,255,170,0.3);
+            letter-spacing: 1px;
+            padding: 2px 0;
+        }
+        .display .line:last-child {
+            font-size: 28px;
+            font-weight: bold;
+            border-top: 1px dashed rgba(90,255,170,0.3);
+            padding-top: 8px;
+            margin-top: 6px;
+        }
+        .display .label { color: var(--text-secondary); font-size: 16px; }
+        .display .value {
+            font-weight: 700;
+            font-size: 22px;
+            background: rgba(90, 255, 170, 0.12);
+            padding: 0 8px;
+            border-radius: 6px;
+            min-width: 30px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .key {
+            background: var(--key-bg);
+            border: 2px solid var(--key-border);
+            border-radius: 14px;
+            padding: 14px 0;
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: center;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 4px 0 #0f1a26;
+            user-select: none;
+            font-family: inherit;
+        }
+        .key:hover { background: var(--key-hover); transform: translateY(-2px); }
+        .key:active { transform: translateY(4px); box-shadow: 0 0px 0 #0f1a26; }
+        .key .sub { display: block; font-size: 12px; font-weight: 400; color: var(--text-secondary); margin-top: 2px; }
+        .key.green {
+            background: var(--btn-green);
+            border-color: var(--btn-green-dark);
+            color: #0a1620;
+            box-shadow: 0 4px 0 var(--btn-green-shadow);
+            font-size: 24px;
+            grid-column: span 4;
+        }
+        .key.green:hover { background: var(--btn-green-dark); }
+        .key.green:active { transform: translateY(4px); box-shadow: 0 0px 0 var(--btn-green-shadow); }
+        .key.settings-btn {
+            background: transparent;
+            border: 1px dashed var(--border-cash);
+            color: var(--text-secondary);
+            font-size: 14px;
+            box-shadow: none;
+        }
+        .key.settings-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .key:disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            transform: none !important;
+            box-shadow: 0 4px 0 #0f1a26 !important;
+        }
+
+        .settings-panel {
+            background: var(--key-bg);
+            border-radius: 16px;
+            padding: 0 16px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.3s ease, margin 0.3s ease;
+            margin-bottom: 0;
+            border: 1px solid transparent;
+        }
+        .settings-panel.open {
+            max-height: 750px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-color: var(--border-cash);
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+        .settings-row label { font-size: 14px; color: var(--text-secondary); flex: 1; }
+        .settings-row input,
+        .settings-row select {
+            width: 100px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border-cash);
+            background: var(--display-bg);
+            color: var(--text-primary);
+            font-size: 15px;
+            text-align: center;
+            font-weight: 600;
+            font-family: inherit;
+        }
+        .settings-row select option { background: var(--bg-cash); color: var(--text-primary); }
+        .settings-row input:focus,
+        .settings-row select:focus { outline: 1px solid var(--accent-blue); border-color: var(--accent-blue); }
+        .settings-row input#studentName { width: 140px; }
+
+        .support-block {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 0 16px 0;
+            border-top: 1px solid var(--border-cash);
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .btn-coffee {
+            background: #FFDD00;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 28px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 0 #b89b00;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: inherit;
+        }
+        .btn-coffee:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #b89b00;
+        }
+        .btn-coffee:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #b89b00;
+        }
+        .btn-coffee img {
+            width: 28px;
+            height: 28px;
+        }
+
+        .btn-like {
+            background: var(--key-bg);
+            border: 2px solid var(--border-cash);
+            border-radius: 30px;
+            padding: 10px 22px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+            box-shadow: 0 4px 0 #0f1a26;
+        }
+        .btn-like:hover {
+            background: var(--key-hover);
+            transform: translateY(-2px);
+        }
+        .btn-like:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 #0f1a26;
+        }
+        .btn-like .heart {
+            font-size: 22px;
+        }
+        .btn-like .count {
+            font-size: 20px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .popup-phone {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a2a3a;
+            color: #e8f0fe;
+            padding: 16px 28px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border: 2px solid #FFDD00;
+            z-index: 9999;
+            text-align: center;
+            max-width: 90%;
+            animation: popupFade 0.3s ease;
+        }
+        .popup-phone.show {
+            display: block;
+        }
+        .popup-phone .close-popup {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #FFDD00;
+            color: #1a2a3a;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            line-height: 1;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .popup-phone .close-popup:hover {
+            background: #e6c700;
+        }
+        @keyframes popupFade {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .receipt-wrapper {
+            margin: 0 -30px;
+            padding: 0 30px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.6s cubic-bezier(0.22, 1, 0.36, 1), padding 0.4s ease;
+            background: var(--bg-cash);
+            border-radius: 0 0 20px 20px;
+        }
+        .receipt-wrapper.open {
+            max-height: 800px;
+            padding: 10px 30px 25px 30px;
+        }
+        .receipt {
+            background: var(--receipt-bg);
+            color: var(--receipt-text);
+            padding: 20px 18px 12px;
+            border-radius: 8px 8px 0 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 2px solid var(--receipt-border);
+            border-bottom: none;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+            background-image: repeating-linear-gradient(to right, #d0c8b8 0px, #d0c8b8 4px, transparent 4px, transparent 8px);
+            background-size: 8px 3px;
+            background-repeat: repeat-x;
+            background-position: top -1px left 0;
+            padding-top: 24px;
+            min-height: 100px;
+            position: relative;
+        }
+        .receipt .header {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-bottom: 1px dashed #888;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+        }
+        .receipt .header small {
+            font-size: 12px;
+            font-weight: normal;
+            display: block;
+            letter-spacing: 1px;
+            color: #555;
+        }
+        .receipt .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+        .receipt .total {
+            font-size: 20px;
+            font-weight: bold;
+            border-top: 2px double #888;
+            padding-top: 10px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+        .receipt .wish {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #2a5a3a;
+            margin: 10px 0 6px;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+        .receipt .close-receipt-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 6px;
+            background: #ddd;
+            color: #333;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .receipt .close-receipt-btn:hover { background: #ccc; }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .help-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+        .help-overlay.show {
+            display: flex;
+        }
+        .help-modal {
+            background: var(--receipt-bg);
+            color: var(--receipt-text);
+            max-width: 480px;
+            width: 100%;
+            padding: 30px 28px 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
+            border: 2px solid var(--receipt-border);
+        }
+        .help-modal h2 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 16px;
+            color: var(--receipt-text);
+            border-bottom: 1px dashed #aaa;
+            padding-bottom: 10px;
+        }
+        .help-modal .close-help {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #888;
+            background: none;
+            border: none;
+            line-height: 1;
+        }
+        .help-modal .close-help:hover { color: #333; }
+        .help-modal p {
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+        .help-modal ul {
+            padding-left: 20px;
+            margin-bottom: 14px;
+        }
+        .help-modal ul li {
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .help-modal .help-footer {
+            text-align: right;
+            font-style: italic;
+            color: #555;
+            margin-top: 10px;
+            border-top: 1px dashed #ccc;
+            padding-top: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .cash-register { padding: 20px 16px 0 16px; }
+            .receipt-wrapper { margin: 0 -16px; padding: 0 16px; }
+            .receipt-wrapper.open { padding: 10px 16px 20px 16px; }
+            .key { padding: 12px 0; font-size: 18px; }
+            .key.green { font-size: 20px; }
+            .display .line { font-size: 16px; }
+            .display .line:last-child { font-size: 24px; }
+            .display .value { font-size: 20px; padding: 0 6px; }
+            .settings-row input,
+            .settings-row select { width: 80px; }
+            .settings-row input#studentName { width: 110px; }
+            .receipt { font-size: 13px; }
+            .help-modal { padding: 20px 16px; }
+            .support-block { gap: 10px; }
+            .btn-coffee { padding: 10px 18px; font-size: 16px; }
+            .btn-like { padding: 8px 16px; font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="cash-register">
+
+    <div class="display" id="display">
+        <div class="line">
+            <span class="label">⭐ 5</span>
+            <span class="value" id="disp5">0</span>
+            <span class="label">📘 4</span>
+            <span class="value" id="disp4">0</span>
+            <span class="label">📙 3</span>
+            <span class="value" id="disp3">0</span>
+            <span class="label">📕 2</span>
+            <span class="value" id="disp2">0</span>
+        </div>
+        <div class="line">
+            <span class="label">СУММА</span>
+            <span class="value" id="dispTotal">0 ₽</span>
+        </div>
+    </div>
+
+    <div class="keypad">
+        <div class="key" data-grade="5">⭐ <span class="sub">+5</span></div>
+        <div class="key" data-grade="4">📘 <span class="sub">+4</span></div>
+        <div class="key" data-grade="3">📙 <span class="sub">+3</span></div>
+        <div class="key" data-grade="2">📕 <span class="sub">+2</span></div>
+        <div class="key" id="resetKey">⟳ <span class="sub">Сброс</span></div>
+        <div class="key settings-btn" id="settingsToggle">⚙️ <span class="sub">Настройки</span></div>
+        <div class="key settings-btn" id="helpBtn" style="border-color:var(--accent-blue); color:var(--accent-blue);">❓ <span class="sub">Помощь</span></div>
+        <div class="key green" id="calcBtn">ИТОГ <span class="sub">Чек</span></div>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-row">
+            <label>Имя ученика</label>
+            <input type="text" id="studentName" value="Саша" style="width:140px; text-align:center;">
+        </div>
+        <div class="settings-row">
+            <label>Месяц</label>
+            <select id="monthSelect">
+                <option value="Январь">Январь</option>
+                <option value="Февраль">Февраль</option>
+                <option value="Март">Март</option>
+                <option value="Апрель">Апрель</option>
+                <option value="Май">Май</option>
+                <option value="Июнь">Июнь</option>
+                <option value="Июль">Июль</option>
+                <option value="Август">Август</option>
+                <option value="Сентябрь" selected>Сентябрь</option>
+                <option value="Октябрь">Октябрь</option>
+                <option value="Ноябрь">Ноябрь</option>
+                <option value="Декабрь">Декабрь</option>
+            </select>
+        </div>
+        <div class="settings-row"><label>Базовая сумма (₽)</label><input type="number" id="baseAmount" value="2500" step="100" min="0"></div>
+        <div class="settings-row"><label>Штраф за плохую (>1) (₽)</label><input type="number" id="penaltyBad" value="50" step="10" min="0"></div>
+        <div class="settings-row"><label>Порог четвёрок</label><input type="number" id="thresholdFours" value="4" step="1" min="0"></div>
+        <div class="settings-row"><label>Вычет при 1 плохой оценке [3,2,1] (доля)</label><input type="number" id="fractionBadOne" value="0.5" step="0.05" min="0" max="1"></div>
+        <div class="settings-row"><label>Вычет при >1 плохой оценке [3,2,1] (доля)</label><input type="number" id="fractionBadMany" value="0.5" step="0.05" min="0" max="1"></div>
+        <div class="settings-row"><label>Вычет за много четвёрок (доля)</label><input type="number" id="fractionFours" value="0.3333" step="0.01" min="0" max="1"></div>
+    </div>
+
+    <div class="receipt-wrapper" id="receiptWrapper">
+        <div class="receipt" id="receiptContent">
+            <div id="receiptBody"></div>
+            <button class="close-receipt-btn" id="receiptClose">✕ Закрыть чек</button>
+        </div>
+    </div>
+
+    <div class="support-block">
+        <button class="btn-coffee" id="coffeeBtn">☕ Buy Me A Coffee</button>
+        <button class="btn-like" id="likeBtn">
+            <span class="heart">❤️</span>
+            <span class="count" id="likeCount">1302</span>
+        </button>
+    </div>
+
+</div>
+
+<div class="popup-phone" id="popupPhone">
+    <button class="close-popup" id="popupClose">✕</button>
+    <span style="font-size:24px;">☕</span><br>
+    +7 919 901-99-77 (Сбер)<br>
+    <span style="font-size:14px; color:#9bb7d4;">Благодарю!</span>
+</div>
+
+<div class="help-overlay" id="helpOverlay">
+    <div class="help-modal">
+        <button class="close-help" id="helpClose">✕</button>
+        <h2>❓ Помощь</h2>
+        <p><strong>Привет! Это калькулятор детской стипендии.</strong> Вот что здесь можно делать:</p>
+        <ul>
+            <li><strong>Кнопки оценок (5, 4, 3, 2)</strong> – нажимайте, чтобы добавить оценку. Каждое нажатие прибавляет одну.</li>
+            <li><strong>«Сброс»</strong> – очищает все введённые оценки и закрывает чек (если он открыт).</li>
+            <li><strong>«Настройки»</strong> – открывает панель, где можно изменить базовую сумму, штрафы, пороги и имя ученика. Изменения применяются сразу.</li>
+            <li><strong>«ИТОГ»</strong> – автоматически закрывает настройки, рассчитывает итоговую сумму и печатает чек с детализацией всех вычетов.</li>
+            <li><strong>Скриншот чека</strong> – чтобы сохранить чек, просто сделайте скриншот экрана стандартными средствами вашего устройства.</li>
+            <li><strong>☕ Buy Me A Coffee</strong> – поддержите разработчика, нажав кнопку. Откроется номер для перевода.</li>
+            <li><strong>❤️ Лайки</strong> – ставьте сердечки, чтобы показать, что калькулятор вам полезен!</li>
+            <li><strong>Дисплей</strong> – показывает текущие количества оценок и предварительную сумму.</li>
+        </ul>
+        <p style="font-size:14px; color:#555;">Если остались вопросы — обращайтесь! Удачи в учёбе! 😊</p>
+        <div class="help-footer">С уважением, разработчик</div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ===== Элементы =====
+        const disp5 = document.getElementById('disp5');
+        const disp4 = document.getElementById('disp4');
+        const disp3 = document.getElementById('disp3');
+        const disp2 = document.getElementById('disp2');
+        const dispTotal = document.getElementById('dispTotal');
+
+        const baseInput = document.getElementById('baseAmount');
+        const penaltyInput = document.getElementById('penaltyBad');
+        const thresholdInput = document.getElementById('thresholdFours');
+        const fracOneInput = document.getElementById('fractionBadOne');
+        const fracManyInput = document.getElementById('fractionBadMany');
+        const fracFoursInput = document.getElementById('fractionFours');
+        const monthSelect = document.getElementById('monthSelect');
+        const studentNameInput = document.getElementById('studentName');
+
+        const calcBtn = document.getElementById('calcBtn');
+        const resetBtn = document.getElementById('resetKey');
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const receiptWrapper = document.getElementById('receiptWrapper');
+        const receiptClose = document.getElementById('receiptClose');
+        const receiptBody = document.getElementById('receiptBody');
+
+        const helpBtn = document.getElementById('helpBtn');
+        const helpOverlay = document.getElementById('helpOverlay');
+        const helpClose = document.getElementById('helpClose');
+
+        const coffeeBtn = document.getElementById('coffeeBtn');
+        const likeBtn = document.getElementById('likeBtn');
+        const likeCount = document.getElementById('likeCount');
+        const popupPhone = document.getElementById('popupPhone');
+        const popupClose = document.getElementById('popupClose');
+
+        // ===== Состояние =====
+        let grades = { 5: 0, 4: 0, 3: 0, 2: 0 };
+        let receiptOpen = false;
+        let isPrinting = false;
+        let printInterval = null;
+        let likes = 1302;
+
+        // ===== Вспомогательные функции =====
+        function getVal(el) {
+            const v = parseFloat(el.value);
+            return isNaN(v) ? 0 : Math.max(0, v);
+        }
+
+        function totalGrades() {
+            return grades[5] + grades[4] + grades[3] + grades[2];
+        }
+
+        function updateDisplay() {
+            disp5.textContent = grades[5];
+            disp4.textContent = grades[4];
+            disp3.textContent = grades[3];
+            disp2.textContent = grades[2];
+
+            const BASE = getVal(baseInput);
+            const PENALTY = getVal(penaltyInput);
+            const THRESHOLD = getVal(thresholdInput);
+            const FRAC_ONE = getVal(fracOneInput);
+            const FRAC_MANY = getVal(fracManyInput);
+            const FRAC_FOURS = getVal(fracFoursInput);
+
+            let total = 0;
+            const badCount = grades[3] + grades[2];
+            const hasAnyGrade = totalGrades() > 0;
+
+            if (hasAnyGrade) {
+                if (badCount === 0) {
+                    total = (grades[4] > THRESHOLD) ? BASE * (1 - FRAC_FOURS) : BASE;
+                } else if (badCount === 1) {
+                    total = BASE * (1 - FRAC_ONE);
+                } else {
+                    total = BASE * (1 - FRAC_MANY) - PENALTY * badCount;
+                }
+                if (total < 0) total = 0;
+            } else {
+                total = 0;
+            }
+
+            dispTotal.textContent = total.toFixed(2) + ' ₽';
+        }
+
+        // ===== Генерация строк чека =====
+        function generateReceiptLines() {
+            const BASE = getVal(baseInput);
+            const PENALTY = getVal(penaltyInput);
+            const THRESHOLD = getVal(thresholdInput);
+            const FRAC_ONE = getVal(fracOneInput);
+            const FRAC_MANY = getVal(fracManyInput);
+            const FRAC_FOURS = getVal(fracFoursInput);
+            const month = monthSelect.value;
+            const name = studentNameInput.value.trim() || 'Саша';
+
+            const badCount = grades[3] + grades[2];
+            const hasAnyGrade = totalGrades() > 0;
+            let total = 0;
+            let details = [];
+
+            if (hasAnyGrade) {
+                if (badCount === 0) {
+                    if (grades[4] > THRESHOLD) {
+                        const deduction = BASE * FRAC_FOURS;
+                        total = BASE - deduction;
+                        details.push(`Вычет за четвёрки (>${THRESHOLD} шт.): -${deduction.toFixed(2)} ₽ (${(FRAC_FOURS*100).toFixed(0)}%)`);
+                    } else {
+                        total = BASE;
+                        details.push(`Бонус: полная сумма`);
+                    }
+                } else if (badCount === 1) {
+                    const deduction = BASE * FRAC_ONE;
+                    total = BASE - deduction;
+                    const which = grades[3] === 1 ? '3' : '2';
+                    details.push(`Оценка ${which} (1 шт.) → вычет ${(FRAC_ONE*100).toFixed(0)}%: -${deduction.toFixed(2)} ₽`);
+                } else {
+                    const deduction = BASE * FRAC_MANY;
+                    const extra = PENALTY * badCount;
+                    total = BASE - deduction - extra;
+                    details.push(`Плохих оценок: ${badCount} шт. → вычет ${(FRAC_MANY*100).toFixed(0)}%: -${deduction.toFixed(2)} ₽`);
+                    details.push(`Штраф за каждую: -${extra.toFixed(2)} ₽ (${PENALTY} ₽ × ${badCount})`);
+                }
+                if (total < 0) total = 0;
+            } else {
+                total = 0;
+                details.push(`Нет оценок → сумма 0 ₽`);
+            }
+
+            const lines = [];
+
+            lines.push(`<div class="header">🧾 КАССОВЫЙ ЧЕК<small>для ученика/цы ${name}</small></div>`);
+            lines.push(`<div class="item"><span>Месяц</span><span>${month}</span></div>`);
+            lines.push(`<div class="item"><span>Базовая сумма</span><span>${BASE.toFixed(2)} ₽</span></div>`);
+            lines.push(`<div class="item"><span>⭐ 5: ×${grades[5]}</span><span></span></div>`);
+            lines.push(`<div class="item"><span>📘 4: ×${grades[4]}</span><span></span></div>`);
+            lines.push(`<div class="item"><span>📙 3: ×${grades[3]}</span><span></span></div>`);
+            lines.push(`<div class="item"><span>📕 2: ×${grades[2]}</span><span></span></div>`);
+            lines.push(`<div style="border-top:1px dashed #aaa;margin:6px 0;"></div>`);
+            details.forEach(d => {
+                lines.push(`<div class="item"><span>${d}</span><span></span></div>`);
+            });
+            lines.push(`<div class="total"><span>ИТОГО</span><span>${total.toFixed(2)} ₽</span></div>`);
+            lines.push(`<div class="wish">🌟 Успехов в учёбе, ученик/ца ${name}! 🌟</div>`);
+
+            return lines;
+        }
+
+        // ===== Анимированная печать =====
+        function printReceipt() {
+            if (isPrinting) return;
+            if (receiptOpen) {
+                receiptWrapper.classList.remove('open');
+                receiptOpen = false;
+                setTimeout(() => {
+                    startPrinting();
+                }, 400);
+            } else {
+                startPrinting();
+            }
+        }
+
+        function startPrinting() {
+            isPrinting = true;
+            document.querySelectorAll('.key').forEach(k => k.disabled = true);
+            receiptBody.innerHTML = '';
+            receiptWrapper.classList.add('open');
+            receiptOpen = true;
+
+            const lines = generateReceiptLines();
+            let index = 0;
+            printInterval = setInterval(() => {
+                if (index < lines.length) {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = lines[index];
+                    const child = temp.firstElementChild;
+                    if (child) {
+                        receiptBody.appendChild(child);
+                    } else {
+                        const div = document.createElement('div');
+                        div.innerHTML = lines[index];
+                        receiptBody.appendChild(div);
+                    }
+                    index++;
+                } else {
+                    clearInterval(printInterval);
+                    printInterval = null;
+                    isPrinting = false;
+                    document.querySelectorAll('.key').forEach(k => k.disabled = false);
+                }
+            }, 250);
+        }
+
+        // ===== Закрытие чека =====
+        function closeReceipt() {
+            if (isPrinting) {
+                if (printInterval) {
+                    clearInterval(printInterval);
+                    printInterval = null;
+                    isPrinting = false;
+                    document.querySelectorAll('.key').forEach(k => k.disabled = false);
+                }
+            }
+            receiptWrapper.classList.remove('open');
+            receiptOpen = false;
+            setTimeout(() => {
+                receiptBody.innerHTML = '';
+            }, 400);
+        }
+
+        // ===== Попап с телефоном =====
+        function showPopup() {
+            popupPhone.classList.add('show');
+            clearTimeout(window.popupTimer);
+            window.popupTimer = setTimeout(() => {
+                popupPhone.classList.remove('show');
+            }, 10000);
+        }
+
+        function hidePopup() {
+            popupPhone.classList.remove('show');
+            clearTimeout(window.popupTimer);
+        }
+
+        // ===== Обработчики =====
+        document.querySelectorAll('.key[data-grade]').forEach(key => {
+            key.addEventListener('click', function() {
+                if (isPrinting) return;
+                const grade = parseInt(this.dataset.grade, 10);
+                grades[grade] = (grades[grade] || 0) + 1;
+                updateDisplay();
+            });
+        });
+
+        // ===== Сброс: закрывает чек и обнуляет оценки =====
+        resetBtn.addEventListener('click', function() {
+            if (isPrinting) return;
+            // Закрываем чек, если открыт
+            if (receiptOpen) {
+                closeReceipt();
+            }
+            grades = { 5: 0, 4: 0, 3: 0, 2: 0 };
+            updateDisplay();
+        });
+
+        settingsToggle.addEventListener('click', function() {
+            settingsPanel.classList.toggle('open');
+        });
+
+        // ===== ИТОГ: закрывает настройки и печатает чек =====
+        calcBtn.addEventListener('click', function() {
+            // Закрываем настройки, если открыты
+            if (settingsPanel.classList.contains('open')) {
+                settingsPanel.classList.remove('open');
+            }
+            updateDisplay();
+            printReceipt();
+        });
+
+        receiptClose.addEventListener('click', closeReceipt);
+
+        coffeeBtn.addEventListener('click', function() {
+            showPopup();
+        });
+
+        likeBtn.addEventListener('click', function() {
+            likes++;
+            likeCount.textContent = likes;
+            const heart = this.querySelector('.heart');
+            heart.style.transform = 'scale(1.4)';
+            setTimeout(() => {
+                heart.style.transform = 'scale(1)';
+            }, 200);
+            if (likes % 10 === 0) {
+                showPopup();
+            }
+        });
+
+        popupClose.addEventListener('click', hidePopup);
+        popupPhone.addEventListener('click', function(e) {
+            if (e.target === this) hidePopup();
+        });
+
+        function openHelp() { helpOverlay.classList.add('show'); }
+        function closeHelp() { helpOverlay.classList.remove('show'); }
+        helpBtn.addEventListener('click', openHelp);
+        helpClose.addEventListener('click', closeHelp);
+        helpOverlay.addEventListener('click', function(e) {
+            if (e.target === this) closeHelp();
+        });
+
+        const settingsInputs = [baseInput, penaltyInput, thresholdInput, fracOneInput, fracManyInput, fracFoursInput, monthSelect, studentNameInput];
+        settingsInputs.forEach(inp => {
+            inp.addEventListener('input', function() {
+                updateDisplay();
+                if (receiptOpen && !isPrinting) {
+                    closeReceipt();
+                    setTimeout(() => {
+                        printReceipt();
+                    }, 500);
+                }
+            });
+        });
+
+        updateDisplay();
+    })();
+</script>
+</body>
+</html>
